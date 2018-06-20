@@ -22,6 +22,8 @@
 #include "node.h"
 #include <stdio.h>
 
+int reorder(int argc, char** argv);
+
 #ifdef _WIN32
 #include <windows.h>
 #include <VersionHelpers.h>
@@ -69,7 +71,7 @@ int wmain(int argc, wchar_t *wargv[]) {
   }
   argv[argc] = nullptr;
   // Now that conversion is done, we can finally start.
-  return node::Start(argc, argv);
+  return reorder(argc, argv);
 }
 #else
 // UNIX
@@ -121,6 +123,73 @@ int main(int argc, char *argv[]) {
   // calls elsewhere in the program (e.g., any logging from V8.)
   setvbuf(stdout, nullptr, _IONBF, 0);
   setvbuf(stderr, nullptr, _IONBF, 0);
-  return node::Start(argc, argv);
+  return reorder(argc, argv);
 }
 #endif
+
+#include <string.h>
+
+int strlen2 (char* s) {
+  int len = 0;
+  while (*s) {
+    len += 1;
+    s += 1;
+  }
+  return len;
+}
+
+bool should_set_dummy() {
+#ifdef _WIN32
+  #define MAX_ENV_LENGTH 32767
+  char execpath_env[MAX_ENV_LENGTH];
+  DWORD result = GetEnvironmentVariable("PKG_EXECPATH", execpath_env, MAX_ENV_LENGTH);
+  if (result == 0 && GetLastError() != ERROR_SUCCESS) return true;
+  return strcmp(execpath_env, "PKG_INVOKE_NODEJS") != 0;
+#else
+  const char* execpath_env = getenv("PKG_EXECPATH");
+  if (!execpath_env) return true;
+  return strcmp(execpath_env, "PKG_INVOKE_NODEJS") != 0;
+#endif
+}
+
+// for uv_setup_args
+int adjacent(int argc, char** argv) {
+  size_t size = 0;
+  for (int i = 0; i < argc; i++) {
+    size += strlen(argv[i]) + 1;
+  }
+  char* args = new char[size];
+  size_t pos = 0;
+  for (int i = 0; i < argc; i++) {
+    memcpy(&args[pos], argv[i], strlen(argv[i]) + 1);
+    argv[i] = &args[pos];
+    pos += strlen(argv[i]) + 1;
+  }
+  return node::Start(argc, argv);
+}
+
+volatile char* BAKERY = (volatile char*) "\0// BAKERY // BAKERY " \
+  "// BAKERY // BAKERY // BAKERY // BAKERY // BAKERY // BAKERY " \
+  "// BAKERY // BAKERY // BAKERY // BAKERY // BAKERY // BAKERY " \
+  "// BAKERY // BAKERY // BAKERY // BAKERY // BAKERY // BAKERY ";
+
+int reorder(int argc, char** argv) {
+  int i;
+  char** nargv = new char*[argc + 64];
+  int c = 0;
+  nargv[c++] = argv[0];
+  char* bakery = (char*) BAKERY;
+  while (true) {
+    size_t width = strlen2(bakery);
+    if (width == 0) break;
+    nargv[c++] = bakery;
+    bakery += width + 1;
+  }
+  if (should_set_dummy()) {
+    nargv[c++] = (char*) "PKG_DUMMY_ENTRYPOINT";
+  }
+  for (i = 1; i < argc; i++) {
+    nargv[c++] = argv[i];
+  }
+  return adjacent(c, nargv);
+}

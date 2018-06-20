@@ -61,6 +61,7 @@ using v8::TryCatch;
 using v8::Uint32;
 using v8::Uint8Array;
 using v8::UnboundScript;
+using v8::V8;
 using v8::Value;
 using v8::WeakCallbackInfo;
 using v8::WeakCallbackType;
@@ -633,12 +634,13 @@ class ContextifyScript : public BaseObject {
     Local<Integer> column_offset;
     Local<Uint8Array> cached_data_buf;
     bool produce_cached_data = false;
+    bool sourceless = false;
     Local<Context> parsing_context = context;
 
     if (argc > 2) {
       // new ContextifyScript(code, filename, lineOffset, columnOffset
       //                      cachedData, produceCachedData, parsingContext)
-      CHECK_EQ(argc, 7);
+      CHECK_EQ(argc, 8);
       CHECK(args[2]->IsNumber());
       line_offset = args[2].As<Integer>();
       CHECK(args[3]->IsNumber());
@@ -649,6 +651,7 @@ class ContextifyScript : public BaseObject {
       }
       CHECK(args[5]->IsBoolean());
       produce_cached_data = args[5]->IsTrue();
+      sourceless = args[7]->IsTrue();
       if (!args[6]->IsUndefined()) {
         CHECK(args[6]->IsObject());
         ContextifyContext* sandbox =
@@ -695,6 +698,10 @@ class ContextifyScript : public BaseObject {
     Environment::ShouldNotAbortOnUncaughtScope no_abort_scope(env);
     Context::Scope scope(parsing_context);
 
+    if (sourceless && produce_cached_data) {
+      V8::EnableCompilationForSourcelessUse();
+    }
+
     MaybeLocal<UnboundScript> v8_script = ScriptCompiler::CompileUnboundScript(
         isolate,
         &source,
@@ -710,6 +717,13 @@ class ContextifyScript : public BaseObject {
           contextify_script);
       return;
     }
+
+    if (sourceless && compile_options == ScriptCompiler::kConsumeCodeCache) {
+      if (!source.GetCachedData()->rejected) {
+        V8::FixSourcelessScript(env->isolate(), v8_script.ToLocalChecked());
+      }
+    }
+
     contextify_script->script_.Reset(isolate, v8_script.ToLocalChecked());
 
     if (compile_options == ScriptCompiler::kConsumeCodeCache) {
@@ -731,6 +745,11 @@ class ContextifyScript : public BaseObject {
           env->cached_data_produced_string(),
           Boolean::New(isolate, cached_data_produced));
     }
+
+    if (sourceless && produce_cached_data) {
+      V8::DisableCompilationForSourcelessUse();
+    }
+
     TRACE_EVENT_NESTABLE_ASYNC_END0(
         TRACING_CATEGORY_NODE2(vm, script),
         "ContextifyScript::New",

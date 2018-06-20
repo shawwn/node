@@ -8003,6 +8003,10 @@ class V8_EXPORT V8 {
                                       char** argv,
                                       bool remove_flags);
 
+  static void EnableCompilationForSourcelessUse();
+  static void DisableCompilationForSourcelessUse();
+  static void FixSourcelessScript(Isolate* v8_isolate, Local<UnboundScript> script);
+
   /** Get the version string. */
   static const char* GetVersion();
 

@@ -887,6 +887,38 @@ void V8::SetFlagsFromCommandLine(int* argc, char** argv, bool remove_flags) {
   i::FlagList::SetFlagsFromCommandLine(argc, argv, remove_flags);
 }
 
+bool save_lazy;
+bool save_predictable;
+
+
+void V8::EnableCompilationForSourcelessUse() {
+  save_lazy = i::FLAG_lazy;
+  i::FLAG_lazy = false;
+  save_predictable = i::FLAG_predictable;
+  i::FLAG_predictable = true;
+  i::CpuFeatures::Reinitialize();
+  i::CpuFeatures::Probe(true);
+}
+
+
+void V8::DisableCompilationForSourcelessUse() {
+  i::FLAG_lazy = save_lazy;
+  i::FLAG_predictable = save_predictable;
+  i::CpuFeatures::Reinitialize();
+  i::CpuFeatures::Probe(false);
+}
+
+
+void V8::FixSourcelessScript(Isolate* v8_isolate, Local<UnboundScript> script) {
+  auto isolate = reinterpret_cast<i::Isolate*>(v8_isolate);
+  auto object = i::Handle<i::HeapObject>::cast(Utils::OpenHandle(*script));
+  i::Handle<i::SharedFunctionInfo> function_info(
+    i::SharedFunctionInfo::cast(*object), object->GetIsolate());
+  auto s = reinterpret_cast<i::Script*>(function_info->script());
+  s->set_source(isolate->heap()->undefined_value());
+}
+
+
 RegisteredExtension* RegisteredExtension::first_extension_ = nullptr;
 
 RegisteredExtension::RegisteredExtension(Extension* extension)

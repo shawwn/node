@@ -61,6 +61,7 @@ DebugOptions::DebugOptions() :
                                host_name_("127.0.0.1"), port_(-1) { }
 
 bool DebugOptions::ParseOption(const char* argv0, const std::string& option) {
+  return false;
   bool has_argument = false;
   std::string option_name;
   std::string argument;

@@ -3848,13 +3848,6 @@ static void DebugEnd(const FunctionCallbackInfo<Value>& args) {
 
 inline void PlatformInit() {
 #ifdef __POSIX__
-#if HAVE_INSPECTOR
-  sigset_t sigmask;
-  sigemptyset(&sigmask);
-  sigaddset(&sigmask, SIGUSR1);
-  const int err = pthread_sigmask(SIG_SETMASK, &sigmask, nullptr);
-#endif  // HAVE_INSPECTOR
-
   // Make sure file descriptors 0-2 are valid before we start logging anything.
   for (int fd = STDIN_FILENO; fd <= STDERR_FILENO; fd += 1) {
     struct stat ignored;
@@ -3867,10 +3860,6 @@ inline void PlatformInit() {
     if (fd != open("/dev/null", O_RDWR))
       ABORT();
   }
-
-#if HAVE_INSPECTOR
-  CHECK_EQ(err, 0);
-#endif  // HAVE_INSPECTOR
 
 #ifndef NODE_SHARED_MODE
   // Restore signal dispositions, the parent process may have changed them.

@@ -549,8 +549,6 @@ bool Agent::Start(node::NodePlatform* platform, const char* path,
   start_io_thread_async.data = this;
   uv_unref(reinterpret_cast<uv_handle_t*>(&start_io_thread_async));
 
-  // Ignore failure, SIGUSR1 won't work, but that should not block node start.
-  StartDebugSignalHandler();
   if (options.inspector_enabled()) {
     // This will return false if listen failed on the inspector port.
     return StartIoThread(options.wait_for_connect());

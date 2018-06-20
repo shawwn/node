@@ -13139,6 +13139,9 @@ Handle<String> JSFunction::ToString(Handle<JSFunction> function) {
   Handle<Object> maybe_class_positions = JSReceiver::GetDataProperty(
       function, isolate->factory()->class_positions_symbol());
   if (maybe_class_positions->IsTuple2()) {
+    if (Script::cast(shared_info->script())->source()->IsUndefined(isolate)) {
+      return isolate->factory()->NewStringFromAsciiChecked("class {}");
+    }
     Tuple2* class_positions = Tuple2::cast(*maybe_class_positions);
     int start_position = Smi::ToInt(class_positions->value1());
     int end_position = Smi::ToInt(class_positions->value2());

@@ -299,6 +299,11 @@ class CpuFeatures : public AllStatic {
   static void PrintTarget();
   static void PrintFeatures();
 
+  static void Reinitialize() {
+    supported_ = 0;
+    initialized_ = false;
+  }
+
  private:
   friend class ExternalReference;
   friend class AssemblerBase;
