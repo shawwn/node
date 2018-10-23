@@ -118,6 +118,7 @@
         [ 'force_load=="true"', {
           'xcode_settings': {
             'OTHER_LDFLAGS': [
+              '-pagezero_size 10000 -image_base 100000000'
               '-Wl,-force_load,<(v8_base)',
             ],
           },
@@ -134,6 +135,7 @@
         [ 'force_load=="true"', {
           'xcode_settings': {
             'OTHER_LDFLAGS': [
+              '-pagezero_size 10000 -image_base 100000000'
               '-Wl,-force_load,<(PRODUCT_DIR)/<(STATIC_LIB_PREFIX)'
                   'zlib<(STATIC_LIB_SUFFIX)',
             ],
@@ -275,6 +277,7 @@
       'cflags!': [ '-O3' ],
       'xcode_settings': {
         'OTHER_LDFLAGS': [
+          '-pagezero_size 10000 -image_base 100000000'
           '--coverage',
         ],
         'OTHER_CFLAGS+': [
@@ -310,6 +313,7 @@
             [ 'force_load=="true"', {
               'xcode_settings': {
                 'OTHER_LDFLAGS': [
+                  '-pagezero_size 10000 -image_base 100000000'
                   '-Wl,-force_load,<(PRODUCT_DIR)/<(openssl_product)',
                 ],
               },

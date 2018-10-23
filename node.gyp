@@ -253,6 +253,7 @@
             'node_shared=="false"', {
           'xcode_settings': {
             'OTHER_LDFLAGS': [
+              '-pagezero_size 10000 -image_base 100000000',
               '-Wl,-force_load,<(PRODUCT_DIR)/<(STATIC_LIB_PREFIX)'
                   '<(node_core_target_name)<(STATIC_LIB_SUFFIX)',
             ],
@@ -292,7 +293,7 @@
         }],
         [ 'node_shared=="true"', {
           'xcode_settings': {
-            'OTHER_LDFLAGS': [ '-Wl,-rpath,@loader_path', ],
+            'OTHER_LDFLAGS': [ '-pagezero_size 10000 -image_base 100000000 -Wl,-rpath,@loader_path', ],
           },
         }],
         [ 'node_intermediate_lib_type=="shared_library" and OS=="win"', {
