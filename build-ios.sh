@@ -109,7 +109,14 @@ CLANG_CPP_FLAGS=" -stdlib=libc++ -std=c++17 "
 
 CLANG_FINAL=" ${CLANG_FLAGS} ${IOS_BUILD_FLAGS} ${IOS_FLAGS} ${DEFINES} "
 
-GYP_DEFINES="target_arch=arm64 v8_target_arch=arm64 host_os=mac v8_enable_lite_mode=1 " \
+if [ `uname` == "Darwin" ]
+then
+  HOST_OS=mac
+else
+  HOST_OS=linux
+fi
+
+GYP_DEFINES="target_arch=arm64 v8_target_arch=arm64 host_os=${HOST_OS} " \
 CC_host="clang -x c ${CLANG_FINAL} " \
 CXX_host="g++ ${CLANG_CPP_FLAGS} ${CLANG_FINAL} " \
 CC="${CC_host}" \
@@ -117,7 +124,6 @@ CXX="${CXX_host}" \
   python configure.py \
   --dest-os=mac \
   --dest-cpu=arm64 \
-  --without-snapshot \
   --openssl-no-asm \
   --without-intl \
   --cross-compiling \
@@ -138,5 +144,5 @@ cp Release_torque out/Release/torque
 cp Debug_bytecode_builtins_list_generator out/Debug/bytecode_builtins_list_generator
 cp Release_bytecode_builtins_list_generator out/Release/bytecode_builtins_list_generator
 
-exec make -j4 -C out BUILDTYPE=Debug V=0 node_lib "$@"
+exec make -j4 -C out BUILDTYPE=Debug V=0 node "$@"
 #exec make -j4 "$@"
