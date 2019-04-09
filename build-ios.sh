@@ -1,9 +1,31 @@
 #!/bin/sh
+set -x
+
+if [ `uname` == "Darwin" ]
+then
+  HOST_OS=linux
+else
+  HOST_OS=mac
+fi
 
 if [ ! -x ./Debug_torque ]
 then
   set -x
-  sh prebuild-ios.sh
+  rm -f {Debug,Release}_{torque,bytecode_builtins_list_generator}
+
+  rm -rf out
+
+  python configure.py --openssl-no-asm --without-intl --enable-static --verbose --debug
+  cd out || exit $?
+  make -j4 torque bytecode_builtins_list_generator || exit $?
+  cp Debug/torque ../Debug_torque || exit $?
+  cp Debug/bytecode_builtins_list_generator ../Debug_bytecode_builtins_list_generator || exit $?
+  make -j4 torque bytecode_builtins_list_generator BUILDTYPE=Release || exit $?
+  cp Release/torque ../Release_torque || exit $?
+  cp Release/bytecode_builtins_list_generator ../Release_bytecode_builtins_list_generator || exit $?
+  cd .. || exit $?
+
+  rm -rf out
   set +x
 fi
 
@@ -33,8 +55,6 @@ if [ "$PWD" = "$SRC_DIR" ]; then
 else
     PREFIX=$PWD
 fi
-
-CONFIGURE="$SRC_DIR/iphoneos-configure"
 
 BUILD_I386_IOSSIM=NO
 BUILD_X86_64_IOSSIM=NO
@@ -107,14 +127,10 @@ CLANG_FLAGS=" -g -O0 ${CLANG_VERBOSE} "
 
 CLANG_CPP_FLAGS=" -stdlib=libc++ -std=c++17 "
 
-CLANG_FINAL=" ${CLANG_FLAGS} ${IOS_BUILD_FLAGS} ${IOS_FLAGS} ${DEFINES} "
+SNAPSHOT=" --without-snapshot "
+#SNAPSHOT=
 
-if [ `uname` == "Darwin" ]
-then
-  HOST_OS=mac
-else
-  HOST_OS=linux
-fi
+CLANG_FINAL=" ${CLANG_FLAGS} ${IOS_BUILD_FLAGS} ${IOS_FLAGS} ${DEFINES} "
 
 GYP_DEFINES="target_arch=arm64 v8_target_arch=arm64 host_os=${HOST_OS} " \
 CC_host="clang -x c ${CLANG_FINAL} " \
@@ -124,6 +140,7 @@ CXX="${CXX_host}" \
   python configure.py \
   --dest-os=mac \
   --dest-cpu=arm64 \
+  $SNAPSHOT \
   --openssl-no-asm \
   --without-intl \
   --cross-compiling \
