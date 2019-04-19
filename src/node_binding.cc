@@ -1,8 +1,17 @@
+#include <string>
+#include <map>
+
+//namespace node {
+//
+//    std::map<std::string, std::pair<void *, bool>> dlibs;
+//}
+
 #include "node_binding.h"
 #include "env-inl.h"
 #include "node_native_module.h"
 #include "util.h"
 #include <atomic>
+
 
 #if HAVE_OPENSSL
 #define NODE_BUILTIN_OPENSSL_MODULES(V) V(crypto) V(tls_wrap)
@@ -112,7 +121,9 @@ NODE_BUILTIN_MODULES(V)
 // functions, and using st_dev and st_ino for the file that is to be loaded
 // as keys for a cache.
 
+
 namespace node {
+    
 namespace dlwrapper {
 
 struct dl_wrap {
@@ -244,6 +255,7 @@ static node_module* modlist_internal;
 static node_module* modlist_linked;
 static uv_once_t init_modpending_once = UV_ONCE_INIT;
 static uv_key_t thread_local_modpending;
+std::map<std::string, std::pair<void *, bool>> dlibs;
 
 // This is set by node::Init() which is used by embedders
 bool node_is_initialized = false;
@@ -321,12 +333,21 @@ static struct global_handle_map_t {
 DLib::DLib(const char* filename, int flags)
     : filename_(filename), flags_(flags), handle_(nullptr) {}
 
+
 #ifdef __POSIX__
 bool DLib::Open() {
-  handle_ = dlopen(filename_.c_str(), flags_);
-  if (handle_ != nullptr) return true;
-  errmsg_ = dlerror();
-  return false;
+    printf("DLib::Open %s\n", filename_.c_str());
+    auto match = dlibs.find(filename_);
+    if (match != dlibs.end()) {
+        printf("DLib::Open found %s\n", filename_.c_str());
+        handle_ = match->second.first;
+    } else {
+        handle_ = dlopen(filename_.c_str(), flags_);
+    }
+    if (handle_ != nullptr)
+        return true;
+    errmsg_ = dlerror();
+    return false;
 }
 
 void DLib::Close() {
@@ -392,6 +413,28 @@ node_module* DLib::GetSavedModuleFromGlobalHandleMap() {
 using InitializerCallback = void (*)(Local<Object> exports,
                                      Local<Value> module,
                                      Local<Context> context);
+
+inline InitializerCallback GetInternalInitializerCallback(DLib* dlib) {
+    printf("GetInternalInitializerCallback %s\n", dlib->filename_.c_str());
+    auto match = dlibs.find(dlib->filename_);
+    if (match != dlibs.end() && !match->second.second) {
+        printf("GetInternalInitializerCallback found %s\n", dlib->filename_.c_str());
+        return reinterpret_cast<InitializerCallback>(match->second.first);
+    } else {
+        return nullptr;
+    }
+}
+
+inline napi_addon_register_func GetNapiInternalInitializerCallback(DLib* dlib) {
+    printf("GetNapiInternalInitializerCallback %s\n", dlib->filename_.c_str());
+    auto match = dlibs.find(dlib->filename_);
+    if (match != dlibs.end() && match->second.second) {
+        printf("GetNapiInternalInitializerCallback found %s\n", dlib->filename_.c_str());
+        return reinterpret_cast<napi_addon_register_func>(match->second.first);
+    } else {
+        return nullptr;
+    }
+}
 
 inline InitializerCallback GetInitializerCallback(DLib* dlib) {
   const char* name = "node_register_module_v" STRINGIFY(NODE_MODULE_VERSION);
@@ -472,20 +515,26 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
       mp->nm_dso_handle = dlib->handle_;
       dlib->SaveInGlobalHandleMap(mp);
     } else {
-      if (auto callback = GetInitializerCallback(dlib)) {
-        callback(exports, module, context);
-        return true;
-      } else if (auto napi_callback = GetNapiInitializerCallback(dlib)) {
-        napi_module_register_by_symbol(exports, module, context, napi_callback);
-        return true;
-      } else {
-        mp = dlib->GetSavedModuleFromGlobalHandleMap();
-        if (mp == nullptr || mp->nm_context_register_func == nullptr) {
-          dlib->Close();
-          env->ThrowError("Module did not self-register.");
-          return false;
+        if (auto callback = GetInternalInitializerCallback(dlib)) {
+            callback(exports, module, context);
+            return true;
+        } else if (auto napi_callback = GetNapiInternalInitializerCallback(dlib)) {
+            napi_module_register_by_symbol(exports, module, context, napi_callback);
+            return true;
+        } else if (auto callback = GetInitializerCallback(dlib)) {
+            callback(exports, module, context);
+            return true;
+        } else if (auto napi_callback = GetNapiInitializerCallback(dlib)) {
+            napi_module_register_by_symbol(exports, module, context, napi_callback);
+            return true;
+        } else {
+            mp = dlib->GetSavedModuleFromGlobalHandleMap();
+            if (mp == nullptr || mp->nm_context_register_func == nullptr) {
+                dlib->Close();
+                env->ThrowError("Module did not self-register.");
+                return false;
+            }
         }
-      }
     }
 
     // -1 is used for N-API modules
@@ -493,7 +542,10 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
       // Even if the module did self-register, it may have done so with the
       // wrong version. We must only give up after having checked to see if it
       // has an appropriate initializer callback.
-      if (auto callback = GetInitializerCallback(dlib)) {
+        if (auto callback = GetInternalInitializerCallback(dlib)) {
+          callback(exports, module, context);
+          return true;
+        } else if (auto callback = GetInitializerCallback(dlib)) {
         callback(exports, module, context);
         return true;
       }
