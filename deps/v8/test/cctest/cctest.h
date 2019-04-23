@@ -689,7 +689,7 @@ class TestPlatform : public v8::Platform {
     old_platform_->CallDelayedOnWorkerThread(std::move(task), delay_in_seconds);
   }
 
-  void CallOnForegroundThread(v8::Isolate* isolate, v8::Task* task) override {
+  void  CallOnForegroundThread(v8::Isolate* isolate, v8::Task* task) override {
     // This is a deprecated function and should not be called anymore.
     UNREACHABLE();
   }
