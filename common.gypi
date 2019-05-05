@@ -165,7 +165,7 @@
             }],
           ],
         },
-        'cflags': [ '-O3' ],
+        'cflags': [ '-g', '-O3' ],
         'conditions': [
           ['OS=="solaris"', {
             # pull in V8's postmortem metadata
@@ -436,7 +436,7 @@
           'PREBINDING': 'NO',                       # No -Wl,-prebind
           'USE_HEADERMAP': 'NO',
           'OTHER_CFLAGS': [
-            '-g', '-O0',
+            '-g',
             '-fno-strict-aliasing',
             '-isysroot', '<(iphoneos_sdk_path)',
             '-miphoneos-version-min=<(min_sdk_version)',

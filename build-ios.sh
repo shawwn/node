@@ -8,18 +8,18 @@ else
   HOST_OS=mac
 fi
 
-if [ ! -x ./Debug_torque ]
+if [ ! -x ./Release_torque ]
 then
   set -x
   rm -f {Debug,Release}_{torque,bytecode_builtins_list_generator}
 
   rm -rf out
 
-  python configure.py --openssl-no-asm --without-intl --enable-static --verbose --debug
+  python configure.py --openssl-no-asm --with-intl=full-icu --enable-static --verbose --debug
   cd out || exit $?
-  make -j4 torque bytecode_builtins_list_generator || exit $?
-  cp Debug/torque ../Debug_torque || exit $?
-  cp Debug/bytecode_builtins_list_generator ../Debug_bytecode_builtins_list_generator || exit $?
+  #make -j4 torque bytecode_builtins_list_generator BUILDTYPE=Debug || exit $?
+  #cp Debug/torque ../Debug_torque || exit $?
+  #cp Debug/bytecode_builtins_list_generator ../Debug_bytecode_builtins_list_generator || exit $?
   make -j4 torque bytecode_builtins_list_generator BUILDTYPE=Release || exit $?
   cp Release/torque ../Release_torque || exit $?
   cp Release/bytecode_builtins_list_generator ../Release_bytecode_builtins_list_generator || exit $?
@@ -32,11 +32,15 @@ fi
 mkdir -p out/Debug
 mkdir -p out/Release
 
-cp Debug_torque out/Debug/torque || exit $?
-cp Debug_bytecode_builtins_list_generator out/Debug/bytecode_builtins_list_generator || exit $?
+#cp Debug_torque out/Debug/torque || exit $?
+#cp Debug_bytecode_builtins_list_generator out/Debug/bytecode_builtins_list_generator || exit $?
+cp Release_torque out/Debug/torque || exit $?
+cp Release_bytecode_builtins_list_generator out/Debug/bytecode_builtins_list_generator || exit $?
+cp deps/icu/source/bin/* out/Debug/
 
 cp Release_torque out/Release/torque || exit $?
 cp Release_bytecode_builtins_list_generator out/Release/bytecode_builtins_list_generator || exit $?
+cp deps/icu/source/bin/* out/Release/
 
 
 #
@@ -87,7 +91,7 @@ CXX=g++
 
 SILENCED_WARNINGS="-Wno-unused-local-typedef -Wno-unused-function"
 
-CFLAGS="${CLANG_VERBOSE} ${SILENCED_WARNINGS} -DNDEBUG -g -O0"
+CFLAGS="${CLANG_VERBOSE} ${SILENCED_WARNINGS} -g"
 
 echo "PREFIX ..................... ${PREFIX}"
 echo "BUILD_MACOSX_X86_64 ........ ${BUILD_MACOSX_X86_64}"
@@ -123,7 +127,17 @@ IOS_FLAGS=" -miphoneos-version-min=$MIN_SDK_VERSION -isysroot '${IPHONEOS_SYSROO
 
 IOS_BUILD_FLAGS=" -m64 -arch arm64 -target arm64-apple-ios "
 
-CLANG_FLAGS=" -g -O0 ${CLANG_VERBOSE} "
+#RELEASE=${RELASE:-}
+#
+CLANG_FLAGS=" -g ${CLANG_VERBOSE} "
+# 
+# if [ -z $RELEASE ]
+# then
+#   #CLANG_FLAGS=" $CLANG_FLAGS -O0 "
+# else
+#   #CLANG_FLAGS=" $CLANG_FLAGS -O3 "
+#   #DEFINES=" -DNDEBUG $DEFINES"
+# fi
 
 CLANG_CPP_FLAGS=" -stdlib=libc++ -std=c++17 "
 
@@ -132,7 +146,7 @@ SNAPSHOT=" --without-snapshot "
 
 CLANG_FINAL=" ${CLANG_FLAGS} ${IOS_BUILD_FLAGS} ${IOS_FLAGS} ${DEFINES} "
 
-GYP_DEFINES="target_arch=arm64 v8_target_arch=arm64 host_os=${HOST_OS} " \
+GYP_DEFINES="v8_enable_inspector=1 target_arch=arm64 v8_target_arch=arm64 host_os=${HOST_OS} " \
 CC_host="clang -x c ${CLANG_FINAL} " \
 CXX_host="g++ ${CLANG_CPP_FLAGS} ${CLANG_FINAL} " \
 CC="${CC_host}" \
@@ -142,7 +156,7 @@ CXX="${CXX_host}" \
   --dest-cpu=arm64 \
   $SNAPSHOT \
   --openssl-no-asm \
-  --without-intl \
+  --with-intl=full-icu \
   --cross-compiling \
   --enable-static \
   --debug \
@@ -150,16 +164,22 @@ CXX="${CXX_host}" \
   "$@" || exit $?
 
 cd out || exit $?
-make -j4 torque bytecode_builtins_list_generator || exit $?
+make -j4 torque bytecode_builtins_list_generator icutools BUILDTYPE=Release || exit $?
 cd .. || exit $?
 
 mkdir -p out/Debug
 mkdir -p out/Release
 
-cp Debug_torque out/Debug/torque
-cp Release_torque out/Release/torque
-cp Debug_bytecode_builtins_list_generator out/Debug/bytecode_builtins_list_generator
-cp Release_bytecode_builtins_list_generator out/Release/bytecode_builtins_list_generator
+#cp Debug_torque out/Debug/torque
+#cp Debug_bytecode_builtins_list_generator out/Debug/bytecode_builtins_list_generator
 
-exec make -j4 -C out BUILDTYPE=Debug V=0 node "$@"
+cp Release_torque out/Debug/torque
+cp Release_bytecode_builtins_list_generator out/Debug/bytecode_builtins_list_generator
+cp deps/icu/source/bin/* out/Debug/
+
+cp Release_torque out/Release/torque
+cp Release_bytecode_builtins_list_generator out/Release/bytecode_builtins_list_generator
+cp deps/icu/source/bin/* out/Release/
+
+exec make -j4 -C out BUILDTYPE=Release V=0 node "$@"
 #exec make -j4 "$@"
