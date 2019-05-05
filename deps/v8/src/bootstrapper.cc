@@ -3847,7 +3847,7 @@ void Genesis::InitializeExperimentalGlobal() {
 #undef FEATURE_INITIALIZE_GLOBAL
 }
 
-#if 1
+#if 0
 # if defined(__IPHONEOS__)
 #  define HAX 1
 # endif
