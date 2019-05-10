@@ -208,6 +208,8 @@ class Environment;
 // better suited for a public embedder API.
 NODE_EXTERN int Start(int argc, char* argv[]);
 
+NODE_EXTERN extern void (*pNodeRunLoopRun)(v8::Isolate* isolate, v8::Local<v8::Context> context, struct uv_loop_s* loop);
+
 // Tear down Node.js while it is running (there are active handles
 // in the loop and / or actively executing JavaScript code).
 NODE_EXTERN int Stop(Environment* env);
