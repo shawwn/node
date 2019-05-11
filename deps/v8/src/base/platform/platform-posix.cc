@@ -517,6 +517,12 @@ int OS::GetCurrentThreadId() {
 void OS::ExitProcess(int exit_code) {
   // Use _exit instead of exit to avoid races between isolate
   // threads and static destructors.
+#ifndef stdout
+#define stdout 1
+#endif
+#ifndef stderr
+#define stderr 2
+#endif
   fflush(stdout);
   fflush(stderr);
   _exit(exit_code);

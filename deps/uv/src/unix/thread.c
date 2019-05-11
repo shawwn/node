@@ -44,6 +44,10 @@
 #undef NANOSEC
 #define NANOSEC ((uint64_t) 1e9)
 
+#ifdef __ANDROID__
+#undef PTHREAD_BARRIER_SERIAL_THREAD
+#endif
+
 #if defined(PTHREAD_BARRIER_SERIAL_THREAD)
 STATIC_ASSERT(sizeof(uv_barrier_t) == sizeof(pthread_barrier_t));
 #endif

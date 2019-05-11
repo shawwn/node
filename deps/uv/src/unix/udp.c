@@ -370,6 +370,7 @@ static int uv__udp_maybe_deferred_bind(uv_udp_t* handle,
     addrlen = sizeof *addr;
     break;
   }
+#if !defined(__ANDROID__)
   case AF_INET6:
   {
     struct sockaddr_in6* addr = &taddr.in6;
@@ -379,6 +380,7 @@ static int uv__udp_maybe_deferred_bind(uv_udp_t* handle,
     addrlen = sizeof *addr;
     break;
   }
+#endif
   default:
     assert(0 && "unsupported address family");
     abort();

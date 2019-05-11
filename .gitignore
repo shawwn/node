@@ -127,3 +127,5 @@ deps/uv/docs/src/guide/
 deps/v8/third_party/eu-strip/
 
 .DS_Store
+Debug_*
+Release_*

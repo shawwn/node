@@ -8,15 +8,34 @@
 # modules with npm. Also, don't forget to set the arch in npm config using
 # 'npm config set arch=<arch>'
 
+set -x
+set +e
+
+if [ `uname` == "Darwin" ]
+then
+  HOST_OS=mac
+else
+  HOST_OS=linux
+fi
 
 if [ -z "$2" ]; then
-    ARCH=arm
+    ARCH=arm64
 else
     ARCH="$2"
 fi
+NDK_PATH=${1:-$NDK_PATH}
+shift 1
+shift 1
+
+set -e
 
 CC_VER="4.9"
 case $ARCH in
+    arm64)
+        DEST_CPU="$ARCH"
+        SUFFIX="aarch64-linux-android"
+        TOOLCHAIN_NAME="$SUFFIX"
+        ;;
     arm)
         DEST_CPU="$ARCH"
         SUFFIX="$ARCH-linux-androideabi"
@@ -38,7 +57,6 @@ case $ARCH in
         ;;
 esac
 
-NDK_PATH=$1
 function make_toolchain {
     $NDK_PATH/build/tools/make-standalone-toolchain.sh \
          --toolchain=$TOOLCHAIN_NAME-$CC_VER \
@@ -58,22 +76,72 @@ if [ -d "$TOOLCHAIN" ]; then
 else
     make_toolchain
 fi
+root=$TOOLCHAIN/bin/$SUFFIX
 export PATH=$TOOLCHAIN/bin:$PATH
-export AR=$TOOLCHAIN/bin/$SUFFIX-ar
-export CC=$TOOLCHAIN/bin/$SUFFIX-gcc
-export CXX=$TOOLCHAIN/bin/$SUFFIX-g++
-export LINK=$TOOLCHAIN/bin/$SUFFIX-g++
+export AR=${root}-ar
+export CC=${root}-clang
+export CXX=${root}-clang++
+export LINK=${root}-clang++
+
+# Uncomment if you want to see more information about each invocation
+# of clang as the builds proceed.
+#CLANG_VERBOSE="${CLANG_VERBOSE:+--verbose}"
+
+CLANG_VERBOSE=--verbose
+
+SILENCED_WARNINGS="-Wno-unused-local-typedef -Wno-unused-function"
+
+CFLAGS="${CLANG_VERBOSE} ${SILENCED_WARNINGS} -g -O0"
+
+DEFINES=" -D__arm64__=1 -D__AARCH64EL__ -D_M_ARM64 -D__ANDROID__=1"
+
+IOS_FLAGS=" "
+
+IOS_BUILD_FLAGS=" -m64 -arch $ARCH -target $SUFFIX "
+
+CLANG_FLAGS=" $CFLAGS "
+
+CLANG_CPP_FLAGS=" -stdlib=libc++ -std=gnu++1y "
+
+SNAPSHOT=" --without-snapshot "
+#SNAPSHOT=
+
+CLANG_FINAL=" ${CLANG_FLAGS} ${IOS_BUILD_FLAGS} ${IOS_FLAGS} ${DEFINES} "
 
 GYP_DEFINES="target_arch=$ARCH"
 GYP_DEFINES+=" v8_target_arch=$ARCH"
 GYP_DEFINES+=" android_target_arch=$ARCH"
-GYP_DEFINES+=" host_os=linux OS=android"
+GYP_DEFINES+=" host_os=android"
+GYP_DEFINES+=" OS=android "
 export GYP_DEFINES
 
-if [ -f "configure" ]; then
-    ./configure \
-        --dest-cpu=$DEST_CPU \
-        --dest-os=android \
-        --without-snapshot \
-        --openssl-no-asm
-fi
+CC_host="${root}-clang -x c ${CLANG_FINAL} " \
+CXX_host="${root}-g++ ${CLANG_CPP_FLAGS} ${CLANG_FINAL} " \
+CC="${CC_host}" \
+CXX="${CXX_host}" \
+  python configure.py \
+  --dest-os=android \
+  --dest-cpu=$DEST_CPU \
+  $SNAPSHOT \
+  --openssl-no-asm \
+  --without-intl \
+  --cross-compiling \
+  --enable-static \
+  --debug \
+  --verbose \
+  "$@"
+
+# GYP_DEFINES="target_arch=$ARCH"
+# GYP_DEFINES+=" v8_target_arch=$ARCH"
+# GYP_DEFINES+=" android_target_arch=$ARCH"
+# GYP_DEFINES+=" host_os=${HOST_OS} OS=android"
+# export GYP_DEFINES
+# 
+# if [ -f "configure" ]; then
+#     python ./configure.py \
+#         --dest-cpu=$DEST_CPU \
+#         --dest-os=android \
+#         --without-snapshot \
+#         --openssl-no-asm \
+#         "$@"
+# fi

@@ -12,6 +12,14 @@
 #include "src/base/debug/stack_trace.h"
 #include "src/base/platform/platform.h"
 
+#ifndef stdout
+#define stdout 1
+#endif
+
+#ifndef stderr
+#define stderr 2
+#endif
+
 namespace v8 {
 namespace base {
 

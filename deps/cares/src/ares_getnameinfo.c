@@ -271,6 +271,7 @@ static void nameinfo_callback(void *arg, int status, int timeouts,
   niquery->callback(niquery->arg, status, niquery->timeouts, NULL, NULL);
   ares_free(niquery);
 }
+#undef HAVE_GETSERVBYPORT_R
 
 static char *lookup_service(unsigned short port, int flags,
                             char *buf, size_t buflen)
