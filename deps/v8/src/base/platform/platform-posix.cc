@@ -407,10 +407,13 @@ void OS::Abort() {
 
 
 void OS::DebugBreak() {
-#if V8_HOST_ARCH_ARM
-  asm("bkpt 0");
+#if V8_HOST_ARCH_IA32
+  asm("int $3");
 #elif V8_HOST_ARCH_ARM64
   asm("brk 0");
+#elif V8_HOST_ARCH_ARM
+  __builtin_trap();
+  //asm("bkpt 0"); // TODO: This doesn't work on WatchOS
 #elif V8_HOST_ARCH_MIPS
   asm("break");
 #elif V8_HOST_ARCH_MIPS64

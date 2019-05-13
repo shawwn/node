@@ -14,8 +14,10 @@
 #include "src/utils.h"
 
 // ARM EABI is required.
+#if !defined(__WATCHOS__)
 #if defined(__arm__) && !defined(__ARM_EABI__)
 #error ARM EABI support is required.
+#endif
 #endif
 
 namespace v8 {

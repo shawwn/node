@@ -16,6 +16,11 @@
 
 #include "src/cpu-features.h"
 
+#if V8_OS_WATCH || defined(__WATCHOS__)
+#include <sys/syscall.h>  // for cache flushing.
+//#include <asm/cachectl.h>
+#endif
+
 namespace v8 {
 namespace internal {
 
@@ -23,6 +28,16 @@ void CpuFeatures::FlushICache(void* start, size_t size) {
 #if !defined(USE_SIMULATOR)
 #if V8_OS_QNX
   msync(start, size, MS_SYNC | MS_INVALIDATE_ICACHE);
+#elif V8_OS_WATCH || defined(__WATCHOS__)
+#if 1
+  uint32_t beg = reinterpret_cast<uint32_t>(start);
+  uint32_t end = beg + size;
+  __builtin___clear_cache((char*)beg, (char*)end);
+#else
+  uint32_t beg = reinterpret_cast<uint32_t>(start);
+  uint32_t end = beg + size;
+  cacheflush((char*)beg, size, ICACHE);
+#endif
 #else
   register uint32_t beg asm("r0") = reinterpret_cast<uint32_t>(start);
   register uint32_t end asm("r1") = beg + size;

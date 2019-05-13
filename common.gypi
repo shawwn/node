@@ -418,6 +418,69 @@
           }],
         ],
       }],
+      ['OS=="mac" and target_arch=="arm"', {
+        'defines': [
+            '__ARMEL__=1',
+            '__IPHONEOS__',
+            '__WATCHOS__',
+            'TARGET_OS_IPHONE=1',
+            'TARGET_OS_WATCH=1',
+            'V8_TARGET_OS_IPHONE=1',
+            'V8_TARGET_OS_WATCH=1',
+            '_DARWIN_USE_64_BIT_INODE=1',
+            ],
+        'xcode_settings': {
+          'ALWAYS_SEARCH_USER_PATHS': 'NO',
+          'GCC_CW_ASM_SYNTAX': 'NO',                # No -fasm-blocks
+          'GCC_DYNAMIC_NO_PIC': 'NO',               # No -mdynamic-no-pic
+                                                    # (Equivalent to -fPIC)
+          'GCC_ENABLE_CPP_EXCEPTIONS': 'NO',        # -fno-exceptions
+          'GCC_ENABLE_CPP_RTTI': 'NO',              # -fno-rtti
+          'GCC_ENABLE_PASCAL_STRINGS': 'NO',        # No -mpascal-strings
+          'PREBINDING': 'NO',                       # No -Wl,-prebind
+          'USE_HEADERMAP': 'NO',
+          'OTHER_CFLAGS': [
+            '-g', '-O0',
+            '-fno-strict-aliasing',
+            '-isysroot', '<(watchos_sdk_path)',
+            '-mwatchos-version-min=<(min_watchos_sdk_version)',
+          ],
+          'WARNING_CFLAGS': [
+            '-Wall',
+            '-Wendif-labels',
+            '-W',
+            '-Wno-unused-parameter',
+          ],
+        },
+        'target_conditions': [
+          ['OS=="openbsd"', {
+            'cflags': [ '-I/usr/local/include' ],
+            'ldflags': [ '-Wl,-z,wxneeded' ],
+          }],
+          ['_type!="static_library"', {
+            'xcode_settings': {
+              'OTHER_LDFLAGS': [
+                '-Wl,-no_pie',
+                '-Wl,-search_paths_first',
+                '-isysroot', '<(watchos_sdk_path)',
+                '-mwatchos-version-min=<(min_watchos_sdk_version)',
+              ],
+            },
+          }],
+        ],
+        'conditions': [
+          ['target_arch=="arm"', {
+            'xcode_settings': {'ARCHS': ['arm64_32']},
+          }],
+          ['clang==1', {
+            'xcode_settings': {
+              'GCC_VERSION': 'com.apple.compilers.llvm.clang.1_0',
+              'CLANG_CXX_LANGUAGE_STANDARD': 'gnu++14',  # -std=gnu++14
+              'CLANG_CXX_LIBRARY': 'libc++',
+            },
+          }],
+        ],
+      }],
       ['OS=="mac" and target_arch=="arm64"', {
         'defines': [
             '__IPHONEOS__',
@@ -439,7 +502,7 @@
             '-g', '-O0',
             '-fno-strict-aliasing',
             '-isysroot', '<(iphoneos_sdk_path)',
-            '-miphoneos-version-min=<(min_sdk_version)',
+            '-miphoneos-version-min=<(min_iphoneos_sdk_version)',
           ],
           'WARNING_CFLAGS': [
             '-Wall',
@@ -459,7 +522,7 @@
                 '-Wl,-no_pie',
                 '-Wl,-search_paths_first',
                 '-isysroot', '<(iphoneos_sdk_path)',
-                '-miphoneos-version-min=<(min_sdk_version)',
+                '-miphoneos-version-min=<(min_iphoneos_sdk_version)',
               ],
             },
           }],
@@ -477,7 +540,7 @@
           }],
         ],
       }],
-      ['OS=="mac" and target_arch!="arm64"', {
+      ['OS=="mac" and target_arch!="arm64" and target_arch!="arm"', {
         'defines': ['_DARWIN_USE_64_BIT_INODE=1'],
         'xcode_settings': {
           'ALWAYS_SEARCH_USER_PATHS': 'NO',

@@ -713,12 +713,20 @@ def get_environ(key, fail):
   else:
     return fail()
 
-def get_min_sdk_version(xcrun=XCRUN):
-  return get_environ('MIN_SDK_VERSION',
+def get_min_iphoneos_sdk_version(xcrun=XCRUN):
+  return get_environ('MIN_IPHONEOS_SDK_VERSION',
       lambda: '8.0')
 
-def get_ios_sdk_version(xcrun=XCRUN):
-  return get_environ('IOS_SDK_VERSION',
+def get_min_watchos_sdk_version(xcrun=XCRUN):
+  return get_environ('MIN_WATCHOS_SDK_VERSION',
+      lambda: '5.1')
+
+def get_watchos_sdk_version(xcrun=XCRUN):
+  return get_environ('WATCHOS_SDK_VERSION',
+      lambda: shell(xcrun, '--sdk watchos --show-sdk-version'))
+
+def get_iphoneos_sdk_version(xcrun=XCRUN):
+  return get_environ('IPHONEOS_SDK_VERSION',
       lambda: shell(xcrun, '--sdk iphoneos --show-sdk-version'))
 
 def get_iphoneos_sdk_platform_path(xcrun=XCRUN):
@@ -737,18 +745,40 @@ def get_iphonesimulator_sdk_path(xcrun=XCRUN):
   return get_environ('IPHONESIMULATOR_SDK_PATH',
       lambda: shell(xcrun, '--sdk iphonesimulator --show-sdk-path'))
 
+def get_watchos_sdk_platform_path(xcrun=XCRUN):
+  return get_environ('WATCHOS_SDK_PLATFORM_PATH',
+      lambda: shell(xcrun, '--sdk watchos --show-sdk-platform-path'))
+
+def get_watchos_sdk_path(xcrun=XCRUN):
+  return get_environ('WATCHOS_SDK_PATH',
+      lambda: shell(xcrun, '--sdk watchos --show-sdk-path'))
+
+def get_watchsimulator_sdk_platform_path(xcrun=XCRUN):
+  return get_environ('WATCHSIMULATOR_SDK_PLATFORM_PATH',
+      lambda: shell(xcrun, '--sdk watchsimulator --show-sdk-platform-path'))
+
+def get_watchsimulator_sdk_path(xcrun=XCRUN):
+  return get_environ('WATCHSIMULATOR_SDK_PATH',
+      lambda: shell(xcrun, '--sdk watchsimulator --show-sdk-path'))
+
 def get_xcode_path(xcode_select=XCODE_SELECT):
   return get_environ('XCODE_PATH',
       lambda: shell(xcode_select, '--print-path'))
 
 def get_ios_info(xcrun=XCRUN):
   return {
-      'min_sdk_version': get_min_sdk_version(xcrun),
-      'ios_sdk_version': get_ios_sdk_version(xcrun),
+      'min_watchos_sdk_version': get_min_watchos_sdk_version(xcrun),
+      'min_iphoneos_sdk_version': get_min_iphoneos_sdk_version(xcrun),
+      'watchos_sdk_version': get_watchos_sdk_version(xcrun),
+      'iphoneos_sdk_version': get_iphoneos_sdk_version(xcrun),
       'iphoneos_sdk_platform_path': get_iphoneos_sdk_platform_path(xcrun),
       'iphoneos_sdk_path': get_iphoneos_sdk_path(xcrun),
       'iphonesimulator_sdk_platform_path': get_iphonesimulator_sdk_platform_path(xcrun),
-      'iphonesimulator_sdk_path': get_iphonesimulator_sdk_path(xcrun)
+      'iphonesimulator_sdk_path': get_iphonesimulator_sdk_path(xcrun),
+      'watchos_sdk_platform_path': get_watchos_sdk_platform_path(xcrun),
+      'watchos_sdk_path': get_watchos_sdk_path(xcrun),
+      'watchsimulator_sdk_platform_path': get_watchsimulator_sdk_platform_path(xcrun),
+      'watchsimulator_sdk_path': get_watchsimulator_sdk_path(xcrun)
       }
 
 def get_llvm_version(cc=CC):
@@ -1317,34 +1347,38 @@ def glob_to_var(dir_base, dir_sub, patch_dir):
     break
   return list
 
-def configure_intl(o):
-  def icu_download(path):
-    with open('tools/icu/current_ver.dep') as f:
-      icus = json.load(f)
-    # download ICU, if needed
-    if not os.access(options.download_path, os.W_OK):
-      error('''Cannot write to desired download path.
-        Either create it or verify permissions.''')
-    for icu in icus:
-      url = icu['url']
-      md5 = icu['md5']
-      local = url.split('/')[-1]
-      targetfile = os.path.join(options.download_path, local)
-      if not os.path.isfile(targetfile):
-        if nodedownload.candownload(auto_downloads, "icu"):
-          nodedownload.retrievefile(url, targetfile)
+def icu_download(path='deps/icu-small'):
+  with open('tools/icu/current_ver.dep') as f:
+    icus = json.load(f)
+  # download ICU, if needed
+  if not os.access(options.download_path, os.W_OK):
+    error('''Cannot write to desired download path.
+      Either create it or verify permissions.''')
+  for icu in icus:
+    url = icu['url']
+    md5 = icu['md5']
+    local = url.split('/')[-1]
+    targetfile = os.path.join(options.download_path, local)
+    if not os.path.isfile(targetfile):
+      if nodedownload.candownload(auto_downloads, "icu"):
+        nodedownload.retrievefile(url, targetfile)
+    else:
+      print('Re-using existing %s' % targetfile)
+    if os.path.isfile(targetfile):
+      print('Checking file integrity with MD5:\r')
+      gotmd5 = nodedownload.md5sum(targetfile)
+      print('MD5:      %s  %s' % (gotmd5, targetfile))
+      if (md5 == gotmd5):
+        return targetfile
       else:
-        print('Re-using existing %s' % targetfile)
-      if os.path.isfile(targetfile):
-        print('Checking file integrity with MD5:\r')
-        gotmd5 = nodedownload.md5sum(targetfile)
-        print('MD5:      %s  %s' % (gotmd5, targetfile))
-        if (md5 == gotmd5):
-          return targetfile
-        else:
-          warn('Expected: %s      *MISMATCH*' % md5)
-          warn('\n ** Corrupted ZIP? Delete %s to retry download.\n' % targetfile)
-    return None
+        warn('Expected: %s      *MISMATCH*' % md5)
+        warn('\n ** Corrupted ZIP? Delete %s to retry download.\n' % targetfile)
+  return None
+if __name__=='__main__':
+  icu_download()
+  sys.exit(1)
+
+def configure_intl(o):
   icu_config = {
     'variables': {}
   }

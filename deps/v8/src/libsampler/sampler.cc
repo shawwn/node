@@ -447,9 +447,15 @@ void SignalHandler::FillRegisterState(void* context, RegisterState* state) {
 #endif  // __DARWIN_UNIX03
 #elif V8_HOST_ARCH_IA32
 #if __DARWIN_UNIX03
+#ifdef __WATCHOS__
+  state->pc = reinterpret_cast<void*>(mcontext->__ss.__pc);
+  state->sp = reinterpret_cast<void*>(mcontext->__ss.__sp);
+  state->fp = reinterpret_cast<void*>(mcontext->__ss.__lr); // TKTK: is this correct?
+#else
   state->pc = reinterpret_cast<void*>(mcontext->__ss.__eip);
   state->sp = reinterpret_cast<void*>(mcontext->__ss.__esp);
   state->fp = reinterpret_cast<void*>(mcontext->__ss.__ebp);
+#endif
 #else  // !__DARWIN_UNIX03
   state->pc = reinterpret_cast<void*>(mcontext->ss.eip);
   state->sp = reinterpret_cast<void*>(mcontext->ss.esp);

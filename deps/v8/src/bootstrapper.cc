@@ -3849,7 +3849,7 @@ void Genesis::InitializeExperimentalGlobal() {
 
 #if 1
 # if defined(__IPHONEOS__)
-#  define HAX 1
+#  define HAX 0
 # endif
 #else
 # undef HAX
