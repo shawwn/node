@@ -191,7 +191,13 @@ CXX="${CXX_host}" \
   "$@"
 
 cd out
-make -j4 torque bytecode_builtins_list_generator icutools BUILDTYPE=Release
+set +e
+copy_artifacts
+make -j4 torque bytecode_builtins_list_generator icutools BUILDTYPE=Debug V=1
+copy_artifacts
+make -j4 torque bytecode_builtins_list_generator icutools BUILDTYPE=Release V=1
+copy_artifacts
+set -e
 cd ..
 
 # build will fail once due to host / target platform mismatch, which is why we build twice in a row below.
@@ -268,7 +274,13 @@ CXX="${CXX_host}" \
   "$@"
 
 cd out
+set +e
+copy_artifacts
+make -j4 torque bytecode_builtins_list_generator icutools BUILDTYPE=Debug V=1
+copy_artifacts
 make -j4 torque bytecode_builtins_list_generator icutools BUILDTYPE=Release V=1
+copy_artifacts
+set -e
 cd ..
 
 # build will fail once due to host / target platform mismatch, which is why we build twice in a row below.
