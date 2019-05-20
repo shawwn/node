@@ -430,7 +430,7 @@
             'IPHONEOS_DEPLOYMENT_TARGET=9.0',
         ],
         'xcode_settings': {
-          'SDKROOT': 'iphone',
+          'SDKROOT': 'iphoneos',
           'ALWAYS_SEARCH_USER_PATHS': 'NO',
           'GCC_CW_ASM_SYNTAX': 'NO',                # No -fasm-blocks
           'GCC_DYNAMIC_NO_PIC': 'NO',               # No -mdynamic-no-pic
