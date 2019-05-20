@@ -427,7 +427,7 @@
             '__IPHONEOS__',
             'TARGET_OS_IPHONE=1',
             'V8_TARGET_OS_IPHONE=1',
-            'IPHONEOS_DEPLOYMENT_TARGET=8.0',
+            'IPHONEOS_DEPLOYMENT_TARGET=9.0',
         ],
         'xcode_settings': {
           'SDKROOT': 'iphone',
@@ -444,8 +444,7 @@
             '-g',
             '-fno-strict-aliasing',
             '-isysroot', '<(iphoneos_sdk_path)',
-            '-miphoneos-version-min=8.0',
-            '-fembed-bitcode',
+            '-miphoneos-version-min=9.0',
           ],
           'WARNING_CFLAGS': [
             '-Wall',
@@ -465,7 +464,6 @@
                 '-Wl,-search_paths_first',
                 '-isysroot', '<(iphoneos_sdk_path)',
                 '-miphoneos-version-min=9.0',
-                '-fembed-bitcode',
               ],
             },
           }],

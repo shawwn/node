@@ -1,6 +1,8 @@
 #!/bin/bash
 set -x
 
+EMBED_BITCODE="${EMBED_BITCODE:+-fembed-bitcode}"
+
 if [ `uname` == "Darwin" ]
 then
   HOST_OS=linux
@@ -153,7 +155,7 @@ DEFINES=" -D__arm64__=1 -D__AARCH64EL__ -D_M_ARM64 -D__IPHONEOS__ -DTARGET_OS_IP
 
 IOS_FLAGS=" -miphoneos-version-min=$MIN_SDK_VERSION -isysroot '${IPHONEOS_SYSROOT}' "
 
-IOS_BUILD_FLAGS=" -m64 -arch arm64 -target arm64-apple-ios -fembed-bitcode "
+IOS_BUILD_FLAGS=" -m64 -arch arm64 -target arm64-apple-ios $EMBED_BITCODE "
 
 #RELEASE=${RELASE:-}
 #
@@ -192,20 +194,9 @@ cd out
 make -j4 torque bytecode_builtins_list_generator icutools BUILDTYPE=Release
 cd ..
 
-# build in release mode
-
-# build will fail once due to host / target platform mismatch
-copy_artifacts
-set +e
-make -j4 -C out BUILDTYPE=Release V=1 node_lib "$@"
-set -e
-# copy artifacts for host platform and try again
-copy_artifacts
-make -j4 -C out BUILDTYPE=Release V=1 node_lib "$@"
+# build will fail once due to host / target platform mismatch, which is why we build twice in a row below.
 
 # build in debug mode
-
-# build will fail once due to host / target platform mismatch
 copy_artifacts
 set +e
 make -j4 -C out BUILDTYPE=Debug V=1 node_lib "$@"
@@ -213,6 +204,15 @@ set -e
 # copy artifacts for host platform and try again
 copy_artifacts
 make -j4 -C out BUILDTYPE=Debug V=1 node_lib "$@"
+
+# build in release mode
+copy_artifacts
+set +e
+make -j4 -C out BUILDTYPE=Release V=1 node_lib "$@"
+set -e
+# copy artifacts for host platform and try again
+copy_artifacts
+make -j4 -C out BUILDTYPE=Release V=1 node_lib "$@"
 
 # if we got this far, try to build the main node target. This tends to fail
 # with bitcode errors, so disable the -e flag.
@@ -271,34 +271,25 @@ cd out
 make -j4 torque bytecode_builtins_list_generator icutools BUILDTYPE=Release V=1
 cd ..
 
-copy_artifacts
-
-# build will fail once due to host / target platform mismatch
-#      /opt/sweet/node/out/Release/obj.target/icuucx/deps/icu/source/common/utrace.o /opt/sweet/node/out/Release/obj.target/icuucx/deps/icu/source/common/brkiter.o
-#       LD_LIBRARY_PATH=/opt/sweet/node/out/Release/lib.host:/opt/sweet/node/out/Release/lib.target:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH; cd ../tools/icu; mkdir -p /opt/sweet/node/out/Release/obj/gen; "/opt/sweet/node/out/Release/icupkg" -tl ../../deps/icu/source/data/in/icudt63l.dat "/opt/sweet/node/out/Release/obj/gen/icudt63l.dat"
-#       clang -x c   -g    -m64 -arch x86_64 -target x86_64-apple-ios -fembed-bitcode   -mios-simulator-version-min=9.0 -isysroot '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator12.1.sdk'   -D__x86_64__=1 -D_M_X64 -D__IPHONEOS__ -DTARGET_OS_IPHONE=1 -DV8_TARGET_OS_IPHONE=1 -DIPHONEOS_DEPLOYMENT_TARGET=9.0   -o /opt/sweet/node/out/Release/obj.target/openssl-cli/deps/openssl/openssl/apps/asn1pars.o ../deps/openssl/openssl/apps/asn1pars.c '-DV8_DEPRECATION_WARNINGS' '-DV8_IMMINENT_DEPRECATION_WARNINGS' '-D_DARWIN_USE_64_BIT_INODE=1' '-D__x86_64__=1' '-D_M_X64' '-D__IPHONEOS__' '-DTARGET_OS_IPHONE=1' '-DV8_TARGET_OS_IPHONE=1' '-DIPHONEOS_DEPLOYMENT_TARGET=9.0' '-DOPENSSL_THREADS' '-DOPENSSL_NO_ASM' '-DNDEBUG' '-DL_ENDIAN' '-DOPENSSL_PIC' '-DOPENSSLDIR="/System/Library/OpenSSL/"' '-DENGINESDIR="/dev/null"' -I../deps/openssl/openssl -I../deps/openssl/openssl/include -I../deps/openssl/openssl/crypto -I../deps/openssl/openssl/crypto/include -I../deps/openssl/openssl/crypto/modes -I../deps/openssl/openssl/crypto/ec/curve448 -I../deps/openssl/openssl/crypto/ec/curve448/arch_32 -I../deps/openssl/config -I../deps/openssl/config/archs/darwin64-x86_64-cc/no-asm/include -I../deps/openssl/openssl/include  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator12.1.sdk -Os -gdwarf-2 -arch x86_64 -Wall -Wendif-labels -W -Wno-unused-parameter -Wno-missing-field-initializers -g -fno-strict-aliasing -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator12.1.sdk -mios-simulator-version-min=9.0 -fembed-bitcode -MMD -MF /opt/sweet/node/out/Release/.deps//opt/sweet/node/out/Release/obj.target/openssl-cli/deps/openssl/openssl/apps/asn1pars.o.d.raw   -c
-#       clang -x c   -g    -m64 -arch x86_64 -target x86_64-apple-ios -fembed-bitcode   -mios-simulator-version-min=9.0 -isysroot '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator12.1.sdk'   -D__x86_64__=1 -D_M_X64 -D__IPHONEOS__ -DTARGET_OS_IPHONE=1 -DV8_TARGET_OS_IPHONE=1 -DIPHONEOS_DEPLOYMENT_TARGET=9.0   -o /opt/sweet/node/out/Release/obj.target/openssl-cli/deps/openssl/openssl/apps/ca.o ../deps/openssl/openssl/apps/ca.c '-DV8_DEPRECATION_WARNINGS' '-DV8_IMMINENT_DEPRECATION_WARNINGS' '-D_DARWIN_USE_64_BIT_INODE=1' '-D__x86_64__=1' '-D_M_X64' '-D__IPHONEOS__' '-DTARGET_OS_IPHONE=1' '-DV8_TARGET_OS_IPHONE=1' '-DIPHONEOS_DEPLOYMENT_TARGET=9.0' '-DOPENSSL_THREADS' '-DOPENSSL_NO_ASM' '-DNDEBUG' '-DL_ENDIAN' '-DOPENSSL_PIC' '-DOPENSSLDIR="/System/Library/OpenSSL/"' '-DENGINESDIR="/dev/null"' -I../deps/openssl/openssl -I../deps/openssl/openssl/include -I../deps/openssl/openssl/crypto -I../deps/openssl/openssl/crypto/include -I../deps/openssl/openssl/crypto/modes -I../deps/openssl/openssl/crypto/ec/curve448 -I../deps/openssl/openssl/crypto/ec/curve448/arch_32 -I../deps/openssl/config -I../deps/openssl/config/archs/darwin64-x86_64-cc/no-asm/include -I../deps/openssl/openssl/include  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator12.1.sdk -Os -gdwarf-2 -arch x86_64 -Wall -Wendif-labels -W -Wno-unused-parameter -Wno-missing-field-initializers -g -fno-strict-aliasing -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator12.1.sdk -mios-simulator-version-min=9.0 -fembed-bitcode -MMD -MF /opt/sweet/node/out/Release/.deps//opt/sweet/node/out/Release/obj.target/openssl-cli/deps/openssl/openssl/apps/ca.o.d.raw   -c
-#     dyld: mach-o, but built for simulator (not macOS)
-#     /bin/sh: line 1: 26397 Abort trap: 6           "/opt/sweet/node/out/Release/icupkg" -tl ../../deps/icu/source/data/in/icudt63l.dat "/opt/sweet/node/out/Release/obj/gen/icudt63l.dat"
-#     make: *** [/opt/sweet/node/out/Release/obj/gen/icudt63l.dat] Error 134
-#     make: *** Waiting for unfinished jobs....
-#     rm 082aa0b677da21a8333c8ff0595ec974f5fcfb27.intermediate 0fcb52d300c7e9ed21eabf1a8bcdf10173b78a4a.intermediate
-set +e
-make -j4 -C out BUILDTYPE=Release V=1 node_lib "$@"
-set -e
-# copy artifacts for host platform and try again
-copy_artifacts
-make -j4 -C out BUILDTYPE=Release V=1 node_lib "$@"
+# build will fail once due to host / target platform mismatch, which is why we build twice in a row below.
 
 # build in debug mode
 copy_artifacts
-# build will fail once due to host / target platform mismatch
 set +e
 make -j4 -C out BUILDTYPE=Debug V=1 node_lib "$@"
 set -e
 # copy artifacts for host platform and try again
 copy_artifacts
 make -j4 -C out BUILDTYPE=Debug V=1 node_lib "$@"
+
+# build in release mode
+copy_artifacts
+set +e
+make -j4 -C out BUILDTYPE=Release V=1 node_lib "$@"
+set -e
+# copy artifacts for host platform and try again
+copy_artifacts
+make -j4 -C out BUILDTYPE=Release V=1 node_lib "$@"
 
 # if we got this far, try to build the main node target. This tends to fail
 # with bitcode errors, so disable the -e flag.
@@ -310,3 +301,14 @@ make -j4 -C out BUILDTYPE=Debug V=1 node "$@"
 set -e
 
 fi
+
+#      /opt/sweet/node/out/Release/obj.target/icuucx/deps/icu/source/common/utrace.o /opt/sweet/node/out/Release/obj.target/icuucx/deps/icu/source/common/brkiter.o
+#       LD_LIBRARY_PATH=/opt/sweet/node/out/Release/lib.host:/opt/sweet/node/out/Release/lib.target:$LD_LIBRARY_PATH; export LD_LIBRARY_PATH; cd ../tools/icu; mkdir -p /opt/sweet/node/out/Release/obj/gen; "/opt/sweet/node/out/Release/icupkg" -tl ../../deps/icu/source/data/in/icudt63l.dat "/opt/sweet/node/out/Release/obj/gen/icudt63l.dat"
+#       clang -x c   -g    -m64 -arch x86_64 -target x86_64-apple-ios -fembed-bitcode   -mios-simulator-version-min=9.0 -isysroot '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator12.1.sdk'   -D__x86_64__=1 -D_M_X64 -D__IPHONEOS__ -DTARGET_OS_IPHONE=1 -DV8_TARGET_OS_IPHONE=1 -DIPHONEOS_DEPLOYMENT_TARGET=9.0   -o /opt/sweet/node/out/Release/obj.target/openssl-cli/deps/openssl/openssl/apps/asn1pars.o ../deps/openssl/openssl/apps/asn1pars.c '-DV8_DEPRECATION_WARNINGS' '-DV8_IMMINENT_DEPRECATION_WARNINGS' '-D_DARWIN_USE_64_BIT_INODE=1' '-D__x86_64__=1' '-D_M_X64' '-D__IPHONEOS__' '-DTARGET_OS_IPHONE=1' '-DV8_TARGET_OS_IPHONE=1' '-DIPHONEOS_DEPLOYMENT_TARGET=9.0' '-DOPENSSL_THREADS' '-DOPENSSL_NO_ASM' '-DNDEBUG' '-DL_ENDIAN' '-DOPENSSL_PIC' '-DOPENSSLDIR="/System/Library/OpenSSL/"' '-DENGINESDIR="/dev/null"' -I../deps/openssl/openssl -I../deps/openssl/openssl/include -I../deps/openssl/openssl/crypto -I../deps/openssl/openssl/crypto/include -I../deps/openssl/openssl/crypto/modes -I../deps/openssl/openssl/crypto/ec/curve448 -I../deps/openssl/openssl/crypto/ec/curve448/arch_32 -I../deps/openssl/config -I../deps/openssl/config/archs/darwin64-x86_64-cc/no-asm/include -I../deps/openssl/openssl/include  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator12.1.sdk -Os -gdwarf-2 -arch x86_64 -Wall -Wendif-labels -W -Wno-unused-parameter -Wno-missing-field-initializers -g -fno-strict-aliasing -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator12.1.sdk -mios-simulator-version-min=9.0 -fembed-bitcode -MMD -MF /opt/sweet/node/out/Release/.deps//opt/sweet/node/out/Release/obj.target/openssl-cli/deps/openssl/openssl/apps/asn1pars.o.d.raw   -c
+#       clang -x c   -g    -m64 -arch x86_64 -target x86_64-apple-ios -fembed-bitcode   -mios-simulator-version-min=9.0 -isysroot '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator12.1.sdk'   -D__x86_64__=1 -D_M_X64 -D__IPHONEOS__ -DTARGET_OS_IPHONE=1 -DV8_TARGET_OS_IPHONE=1 -DIPHONEOS_DEPLOYMENT_TARGET=9.0   -o /opt/sweet/node/out/Release/obj.target/openssl-cli/deps/openssl/openssl/apps/ca.o ../deps/openssl/openssl/apps/ca.c '-DV8_DEPRECATION_WARNINGS' '-DV8_IMMINENT_DEPRECATION_WARNINGS' '-D_DARWIN_USE_64_BIT_INODE=1' '-D__x86_64__=1' '-D_M_X64' '-D__IPHONEOS__' '-DTARGET_OS_IPHONE=1' '-DV8_TARGET_OS_IPHONE=1' '-DIPHONEOS_DEPLOYMENT_TARGET=9.0' '-DOPENSSL_THREADS' '-DOPENSSL_NO_ASM' '-DNDEBUG' '-DL_ENDIAN' '-DOPENSSL_PIC' '-DOPENSSLDIR="/System/Library/OpenSSL/"' '-DENGINESDIR="/dev/null"' -I../deps/openssl/openssl -I../deps/openssl/openssl/include -I../deps/openssl/openssl/crypto -I../deps/openssl/openssl/crypto/include -I../deps/openssl/openssl/crypto/modes -I../deps/openssl/openssl/crypto/ec/curve448 -I../deps/openssl/openssl/crypto/ec/curve448/arch_32 -I../deps/openssl/config -I../deps/openssl/config/archs/darwin64-x86_64-cc/no-asm/include -I../deps/openssl/openssl/include  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator12.1.sdk -Os -gdwarf-2 -arch x86_64 -Wall -Wendif-labels -W -Wno-unused-parameter -Wno-missing-field-initializers -g -fno-strict-aliasing -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator12.1.sdk -mios-simulator-version-min=9.0 -fembed-bitcode -MMD -MF /opt/sweet/node/out/Release/.deps//opt/sweet/node/out/Release/obj.target/openssl-cli/deps/openssl/openssl/apps/ca.o.d.raw   -c
+#     dyld: mach-o, but built for simulator (not macOS)
+#     /bin/sh: line 1: 26397 Abort trap: 6           "/opt/sweet/node/out/Release/icupkg" -tl ../../deps/icu/source/data/in/icudt63l.dat "/opt/sweet/node/out/Release/obj/gen/icudt63l.dat"
+#     make: *** [/opt/sweet/node/out/Release/obj/gen/icudt63l.dat] Error 134
+#     make: *** Waiting for unfinished jobs....
+#     rm 082aa0b677da21a8333c8ff0595ec974f5fcfb27.intermediate 0fcb52d300c7e9ed21eabf1a8bcdf10173b78a4a.intermediate
+k
