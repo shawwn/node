@@ -71,12 +71,15 @@ function copy_artifacts () {
   fi
   cd ..
 
-  rsync -Pa artifacts/node-ios-artifacts/deps/icu/ deps/icu/
+  if [ ! -d deps/icu ]
+  then
+    rsync -Pa artifacts/node-ios-artifacts/deps/icu/ deps/icu/
+  fi
   mkdir -p out/Debug
   mkdir -p out/Release
   cp artifacts/node-ios-artifacts/bin/* out/Debug
-  cp artifacts/node-ios-artifacts/bin/* out/Release
   cp deps/icu/source/bin/* out/Debug/
+  cp artifacts/node-ios-artifacts/bin/* out/Release
   cp deps/icu/source/bin/* out/Release/
 }
 copy_artifacts
@@ -189,15 +192,36 @@ cd out
 make -j4 torque bytecode_builtins_list_generator icutools BUILDTYPE=Release
 cd ..
 
-copy_artifacts
+# build in release mode
 
 # build will fail once due to host / target platform mismatch
+copy_artifacts
 set +e
-make -j4 -C out BUILDTYPE=Release V=1 node "$@"
+make -j4 -C out BUILDTYPE=Release V=1 node_lib "$@"
 set -e
 # copy artifacts for host platform and try again
 copy_artifacts
+make -j4 -C out BUILDTYPE=Release V=1 node_lib "$@"
+
+# build in debug mode
+
+# build will fail once due to host / target platform mismatch
+copy_artifacts
+set +e
+make -j4 -C out BUILDTYPE=Debug V=1 node_lib "$@"
+set -e
+# copy artifacts for host platform and try again
+copy_artifacts
+make -j4 -C out BUILDTYPE=Debug V=1 node_lib "$@"
+
+# if we got this far, try to build the main node target. This tends to fail
+# with bitcode errors, so disable the -e flag.
+set +e
+copy_artifacts
 make -j4 -C out BUILDTYPE=Release V=1 node "$@"
+copy_artifacts
+make -j4 -C out BUILDTYPE=Debug V=1 node "$@"
+set -e
 
 fi
 
@@ -260,12 +284,29 @@ copy_artifacts
 #     make: *** Waiting for unfinished jobs....
 #     rm 082aa0b677da21a8333c8ff0595ec974f5fcfb27.intermediate 0fcb52d300c7e9ed21eabf1a8bcdf10173b78a4a.intermediate
 set +e
-make -j4 -C out BUILDTYPE=Release V=1 node "$@"
+make -j4 -C out BUILDTYPE=Release V=1 node_lib "$@"
 set -e
 # copy artifacts for host platform and try again
 copy_artifacts
-make -j4 -C out BUILDTYPE=Release V=1 node "$@"
+make -j4 -C out BUILDTYPE=Release V=1 node_lib "$@"
 
-#exec make -j4 "$@"
+# build in debug mode
+copy_artifacts
+# build will fail once due to host / target platform mismatch
+set +e
+make -j4 -C out BUILDTYPE=Debug V=1 node_lib "$@"
+set -e
+# copy artifacts for host platform and try again
+copy_artifacts
+make -j4 -C out BUILDTYPE=Debug V=1 node_lib "$@"
+
+# if we got this far, try to build the main node target. This tends to fail
+# with bitcode errors, so disable the -e flag.
+set +e
+copy_artifacts
+make -j4 -C out BUILDTYPE=Release V=1 node "$@"
+copy_artifacts
+make -j4 -C out BUILDTYPE=Debug V=1 node "$@"
+set -e
 
 fi
