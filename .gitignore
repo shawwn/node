@@ -130,3 +130,4 @@ deps/v8/third_party/eu-strip/
 
 Debug_*
 Release_*
+/artifacts
