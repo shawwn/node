@@ -509,7 +509,6 @@
             '-fno-strict-aliasing',
             '-isysroot', '<(iphonesimulator_sdk_path)',
             '-mios-simulator-version-min=9.0',
-            '-fembed-bitcode',
           ],
           'WARNING_CFLAGS': [
             '-Wall',
@@ -525,7 +524,6 @@
                 '-Wl,-search_paths_first',
                 '-isysroot', '<(iphonesimulator_sdk_path)',
                 '-mios-simulator-version-min=9.0',
-                '-fembed-bitcode',
               ],
             },
           }],

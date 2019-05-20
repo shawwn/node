@@ -232,7 +232,7 @@ DEFINES=" -D__x86_64__=1 -D_M_X64 -D__IPHONEOS__ -DTARGET_OS_IPHONE=1 -DV8_TARGE
 
 IOS_FLAGS=" -mios-simulator-version-min=$MIN_SDK_VERSION -isysroot '${IPHONESIMULATOR_SYSROOT}' "
 
-IOS_BUILD_FLAGS=" -m64 -arch x86_64 -target x86_64-apple-ios -fembed-bitcode "
+IOS_BUILD_FLAGS=" -m64 -arch x86_64 -target x86_64-apple-ios "
 
 #RELEASE=${RELASE:-}
 #
