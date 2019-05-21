@@ -1,6 +1,13 @@
 #!/bin/bash
 set -x
 
+# for some reason, this is set:
+#   HOMEBREW_OPTFLAGS=-march=nehalem
+# causing the following error:
+#   clang: error: the clang compiler does not support '-march=nehalem'
+# punt for now by unsetting it here.
+unset HOMEBREW_OPTFLAGS
+
 EMBED_BITCODE="${EMBED_BITCODE:+-fembed-bitcode}"
 
 if [ `uname` == "Darwin" ]
