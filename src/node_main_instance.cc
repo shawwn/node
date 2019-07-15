@@ -92,6 +92,17 @@ NodeMainInstance::~NodeMainInstance() {
   platform_->UnregisterIsolate(isolate_);
 }
 
+NODE_EXTERN void (*pNodeRunLoopRun)(v8::Isolate* isolate, v8::Local<v8::Context> context, struct uv_loop_s* loop);
+
+void NodeRunLoopRun(v8::Isolate* isolate, v8::Local<v8::Context> context, struct uv_loop_s* loop)
+{
+  if (pNodeRunLoopRun != nullptr) {
+    pNodeRunLoopRun(isolate, context, loop);
+  } else {
+    uv_run(loop, UV_RUN_DEFAULT);
+  }
+}
+
 int NodeMainInstance::Run() {
   Locker locker(isolate_);
   Isolate::Scope isolate_scope(isolate_);
@@ -117,7 +128,7 @@ int NodeMainInstance::Run() {
       env->performance_state()->Mark(
           node::performance::NODE_PERFORMANCE_MILESTONE_LOOP_START);
       do {
-        uv_run(env->event_loop(), UV_RUN_DEFAULT);
+        NodeRunLoopRun(env->isolate(), env->context(), env->event_loop());
 
         per_process::v8_platform.DrainVMTasks(isolate_);
 

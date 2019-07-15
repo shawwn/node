@@ -651,6 +651,9 @@ inline void PlatformInit() {
 #endif  // _WIN32
 }
 
+#ifdef __APPLE__
+#include <Availability.h>
+#endif
 
 // Safe to call more than once and from signal handlers.
 void ResetStdio() {
@@ -701,7 +704,9 @@ void ResetStdio() {
         err = tcsetattr(fd, TCSANOW, &s.termios);
       while (err == -1 && errno == EINTR);  // NOLINT
       CHECK_EQ(0, pthread_sigmask(SIG_UNBLOCK, &sa, nullptr));
+#if !TARGET_OS_UIKITFORMAC
       CHECK_EQ(0, err);
+#endif
     }
   }
 #endif  // __POSIX__
