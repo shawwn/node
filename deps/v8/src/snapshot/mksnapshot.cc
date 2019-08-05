@@ -272,7 +272,15 @@ void MaybeSetCounterFunction(v8::Isolate* isolate) {
 
 }  // namespace
 
+#if defined(__APPLE__) && V8_TARGET_ARCH_ARM64
+#include <stdlib.h>
+#include <unistd.h>
+#endif
+
 int main(int argc, char** argv) {
+#if defined(__APPLE__) && V8_TARGET_ARCH_ARM64
+  chdir(getenv("HOME"));
+#endif
   v8::base::EnsureConsoleOutput();
 
   // Make mksnapshot runs predictable to create reproducible snapshots.
