@@ -171,7 +171,7 @@
             }],
           ],
         },
-        'cflags': [ '-O3' ],
+        'cflags': [ '-g', '-O3' ],
         'conditions': [
           ['OS=="solaris"', {
             # pull in V8's postmortem metadata
@@ -361,6 +361,10 @@
             'cflags': [ '-m64' ],
             'ldflags': [ '-m64' ],
           }],
+          [ 'target_arch=="arm64"', {
+            'cflags': [ '-m64' ],
+            'ldflags': [ '-m64' ],
+          }],
           [ 'target_arch=="ppc" and OS!="aix"', {
             'cflags': [ '-m32' ],
             'ldflags': [ '-m32' ],
@@ -423,6 +427,7 @@
       ['OS=="mac"', {
         'defines': ['_DARWIN_USE_64_BIT_INODE=1'],
         'xcode_settings': {
+          'SDKROOT': 'iphoneos',
           'ALWAYS_SEARCH_USER_PATHS': 'NO',
           'GCC_CW_ASM_SYNTAX': 'NO',                # No -fasm-blocks
           'GCC_DYNAMIC_NO_PIC': 'NO',               # No -mdynamic-no-pic
@@ -431,10 +436,13 @@
           'GCC_ENABLE_CPP_RTTI': 'NO',              # -fno-rtti
           'GCC_ENABLE_PASCAL_STRINGS': 'NO',        # No -mpascal-strings
           'PREBINDING': 'NO',                       # No -Wl,-prebind
-          'MACOSX_DEPLOYMENT_TARGET': '10.10',      # -mmacosx-version-min=10.10
+          #'MACOSX_DEPLOYMENT_TARGET': '10.10',      # -mmacosx-version-min=10.10
           'USE_HEADERMAP': 'NO',
           'OTHER_CFLAGS': [
             '-fno-strict-aliasing',
+            '-target', 'arm64-apple-ios11.0',
+            '-miphoneos-version-min=11.0',
+            '-isysroot', "<!(xcrun --sdk iphoneos --show-sdk-path)",
           ],
           'WARNING_CFLAGS': [
             '-Wall',
@@ -449,6 +457,8 @@
               'OTHER_LDFLAGS': [
                 '-Wl,-no_pie',
                 '-Wl,-search_paths_first',
+                '-target', 'arm64-apple-ios11.0',
+                '-isysroot', "<!(xcrun --sdk iphoneos --show-sdk-path)",
               ],
             },
           }],
@@ -459,6 +469,9 @@
           }],
           ['target_arch=="x64"', {
             'xcode_settings': {'ARCHS': ['x86_64']},
+          }],
+          ['target_arch=="arm64"', {
+            'xcode_settings': {'ARCHS': ['arm64']},
           }],
           ['clang==1', {
             'xcode_settings': {
