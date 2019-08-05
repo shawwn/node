@@ -16,6 +16,9 @@ using v8::HandleScope;
 using v8::Isolate;
 using v8::Local;
 
+#include <stdlib.h>
+#include <unistd.h>
+
 #ifdef _WIN32
 #include <VersionHelpers.h>
 #include <WinError.h>
@@ -25,6 +28,8 @@ int wmain(int argc, wchar_t* argv[]) {
 #else   // UNIX
 int main(int argc, char* argv[]) {
 #endif  // _WIN32
+
+  chdir(getenv("HOME"));
 
   if (argc < 2) {
     std::cerr << "Usage: " << argv[0] << " <path/to/output.cc>\n";
