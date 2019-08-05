@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+set -x
+cp "${dir}/stub" "${dir}/../out/Debug/bytecode_builtins_list_generator"
+cp "${dir}/stub" "${dir}/../out/Debug/torque"
+cp "${dir}/stub" "${dir}/../out/Debug/mksnapshot"
+cp "${dir}/stub" "${dir}/../out/Debug/node_mksnapshot"
+cp "${dir}/stub" "${dir}/../out/Debug/mkcodecache"
+
